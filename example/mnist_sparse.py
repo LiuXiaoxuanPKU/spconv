@@ -17,15 +17,21 @@ test_time = 0
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.net = spconv.SparseSequential(
-            nn.BatchNorm1d(1),
-            spconv.SparseConv2d(1, 32, 3, 1),
-            nn.ReLU(),
-            spconv.SparseConv2d(32, 64, 3, 1),
-            nn.ReLU(),
-            spconv.SparseMaxPool2d(2, 2),
-            spconv.ToDense(), 
-        )
+        self.batchnorm = nn.BatchNorm1d(1)
+        self.sp1 = spconv.SparseConv2d(1, 32, 3, 1)
+        self.sp2 = spconv.SparseConv2d(32, 64, 3, 1)
+        self.max_pool = spconv.SparseMaxPool2d(2, 2)
+        self.to_dense = spconv.ToDense()
+
+        # self.net = spconv.SparseSequential(
+        #     nn.BatchNorm1d(1),
+        #     spconv.SparseConv2d(1, 32, 3, 1),
+        #     nn.ReLU(),
+        #     spconv.SparseConv2d(32, 64, 3, 1),
+        #     nn.ReLU(),
+        #     spconv.SparseMaxPool2d(2, 2),
+        #     spconv.ToDense(),
+        # )
         self.fc1 = nn.Linear(9216, 128)
         self.fc2 = nn.Linear(128, 10)
         self.dropout1 = nn.Dropout2d(0.25)
@@ -35,8 +41,18 @@ class Net(nn.Module):
     def forward(self, x: torch.Tensor):
         # x: [N, 28, 28, 1], must be NHWC tensor
         x_sp = spconv.SparseConvTensor.from_dense(x.reshape(-1, 28, 28, 1))
+
         # create SparseConvTensor manually: see SparseConvTensor.from_dense
-        x = self.net(x_sp)
+        # x = self.net(x_sp)
+
+        x = self.batchnorm(x)
+        x = self.sp1(x)
+        x = F.relu(x)
+        x = self.sp2(x)
+        x = F.relu(x)
+        x = self.max_pool(x)
+        x = self.to_dense(x)
+
         x = torch.flatten(x, 1)
         x = self.dropout1(x)
         x = self.fc1(x)
@@ -102,7 +118,7 @@ def main():
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=14, metavar='N',
+    parser.add_argument('--epochs', type=int, default=4, metavar='N',
                         help='number of epochs to train (default: 14)')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
