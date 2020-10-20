@@ -1,5 +1,7 @@
 from __future__ import print_function
 import argparse
+from collections import OrderedDict
+
 import torch
 import spconv
 import torch.nn as nn
@@ -23,14 +25,14 @@ class Net(nn.Module):
         self.max_pool = spconv.SparseMaxPool2d(2, 2)
         self.to_dense = spconv.ToDense()
 
-        # self.net = spconv.SparseSequential(
-        #     nn.BatchNorm1d(1),
-        #     spconv.SparseConv2d(1, 32, 3, 1),
-        #     nn.ReLU(),
-        #     spconv.SparseConv2d(32, 64, 3, 1),
-        #     nn.ReLU(),
-        #     spconv.SparseMaxPool2d(2, 2),
-        #     spconv.ToDense(),
+        # self.net = spconv.SparseSequential(OrderedDict([
+        #     ("b", nn.BatchNorm1d(1)),
+        #     ("sp1", spconv.SparseConv2d(1, 32, 3, 1)),
+        #     ("r1", nn.ReLU()),
+        #     ("sp3", spconv.SparseConv2d(32, 64, 3, 1)),
+        #     ("r2", nn.ReLU()),
+        #     ("mp", spconv.SparseMaxPool2d(2, 2)),
+        #     ("t", spconv.ToDense())])
         # )
         self.fc1 = nn.Linear(9216, 128)
         self.fc2 = nn.Linear(128, 10)
@@ -45,11 +47,11 @@ class Net(nn.Module):
         # create SparseConvTensor manually: see SparseConvTensor.from_dense
         # x = self.net(x_sp)
 
-        x = self.batchnorm(x)
-        x = self.sp1(x)
-        x = F.relu(x)
+        x_sp.features = self.batchnorm(x_sp.features)
+        x = self.sp1(x_sp)
+        x.features = F.relu(x.features)
         x = self.sp2(x)
-        x = F.relu(x)
+        x.features = F.relu(x.features)
         x = self.max_pool(x)
         x = self.to_dense(x)
 
