@@ -16,6 +16,12 @@ bw_time = 0
 train_time = 0
 test_time = 0
 
+sparsity_cov1 = (0, 0)
+sparsity_cov2 = (0, 0)
+sparsity_relu1 = (0, 0)
+sparsity_relu2 = (0, 0)
+sparsity_maxpool = (0, 0)
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -25,22 +31,24 @@ class Net(nn.Module):
         self.max_pool = spconv.SparseMaxPool2d(2, 2)
         self.to_dense = spconv.ToDense()
 
-        # self.net = spconv.SparseSequential(OrderedDict([
-        #     ("b", nn.BatchNorm1d(1)),
-        #     ("sp1", spconv.SparseConv2d(1, 32, 3, 1)),
-        #     ("r1", nn.ReLU()),
-        #     ("sp3", spconv.SparseConv2d(32, 64, 3, 1)),
-        #     ("r2", nn.ReLU()),
-        #     ("mp", spconv.SparseMaxPool2d(2, 2)),
-        #     ("t", spconv.ToDense())])
-        # )
         self.fc1 = nn.Linear(9216, 128)
         self.fc2 = nn.Linear(128, 10)
         self.dropout1 = nn.Dropout2d(0.25)
         self.dropout2 = nn.Dropout2d(0.5)
 
+    def get_new_spar(self, news, old_spar_cnt):
+        (olds, oldcnt) = old_spar_cnt
+        cnt = oldcnt + 1
+        news = (olds * oldcnt + news) / cnt
+        return (news, cnt)
 
     def forward(self, x: torch.Tensor):
+        global sparsity_cov1
+        global sparsity_cov2
+        global sparsity_relu1
+        global sparsity_relu2
+        global sparsity_maxpool
+
         # x: [N, 28, 28, 1], must be NHWC tensor
         x_sp = spconv.SparseConvTensor.from_dense(x.reshape(-1, 28, 28, 1))
 
@@ -49,10 +57,20 @@ class Net(nn.Module):
 
         x_sp.features = self.batchnorm(x_sp.features)
         x = self.sp1(x_sp)
+        sparsity_cov1 = self.get_new_spar(x.sparity, sparsity_cov1)
+
         x.features = F.relu(x.features)
+        sparsity_relu1 = self.get_new_spar(x.sparity, sparsity_relu1)
+
         x = self.sp2(x)
+        sparsity_cov2 = self.get_new_spar(x.sparity, sparsity_cov2)
+
         x.features = F.relu(x.features)
+        sparsity_relu2 = self.get_new_spar(x.sparity, sparsity_relu2)
+
         x = self.max_pool(x)
+        sparsity_maxpool = self.get_new_spar(x.sparity, sparsity_maxpool)
+
         x = self.to_dense(x)
 
         x = torch.flatten(x, 1)
@@ -174,7 +192,11 @@ def main():
         test_time += test_end - test_start
         scheduler.step()
 
-
+    print("Sparsity cov1", sparsity_cov1)
+    print("Sparsity relu1", sparsity_relu1)
+    print("Sparsity cov2", sparsity_cov2)
+    print("Sparsity relu2", sparsity_relu2)
+    print("Sparsity max pool", sparsity_maxpool)
     print("Train time:", train_time, " Test time:", test_time)
     print("Forward time:", forward_time, " Backward time:", bw_time)
     if args.save_model:
