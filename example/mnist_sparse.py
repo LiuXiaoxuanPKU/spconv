@@ -48,6 +48,8 @@ class Net(nn.Module):
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
+    global forward_time
+    global bw_time
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
@@ -90,6 +92,10 @@ def test(model, device, test_loader):
 
 
 def main():
+    global train_time
+    global test_time
+    global forward_time
+    global bw_time
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',

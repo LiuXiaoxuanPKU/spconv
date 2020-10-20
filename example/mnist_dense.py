@@ -76,6 +76,10 @@ def test(model, device, test_loader):
 
 
 def main():
+    global train_time
+    global test_time
+    global forward_time
+    global bw_time
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
