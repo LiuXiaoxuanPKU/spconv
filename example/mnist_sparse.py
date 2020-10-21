@@ -28,6 +28,8 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.batchnorm = nn.BatchNorm1d(1)
+        self.dense_batchnorm = nn.BatchNorm1d(1)
+
         self.dense_cov1 = nn.Conv2d(1, 32, 3, 1)
         self.dense_cov2 = nn.Conv2d(32, 64, 3, 1)
 
@@ -58,7 +60,7 @@ class Net(nn.Module):
             x = self.batchnorm(x)
             x = self.dense_cov1(x)
             x = F.relu(x)
-            x = spconv.SparseConvTensor.from_dense(x.reshape(-1, 32, 26, 26))
+            x = spconv.SparseConvTensor.from_dense(x.reshape(-1, 26, 26, 32))
 
         else :
             # x: [N, 28, 28, 1], must be NHWC tensor
