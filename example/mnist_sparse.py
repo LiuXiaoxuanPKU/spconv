@@ -22,10 +22,15 @@ sparsity_relu1 = (0, 0)
 sparsity_relu2 = (0, 0)
 sparsity_maxpool = (0, 0)
 
+dense1 = True
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.batchnorm = nn.BatchNorm1d(1)
+        self.dense_cov1 = nn.Conv2d(1, 32, 3, 1)
+        self.dense_cov2 = nn.Conv2d(32, 64, 3, 1)
+
         self.sp1 = spconv.SparseConv2d(1, 32, 3, 1)
         self.sp2 = spconv.SparseConv2d(32, 64, 3, 1)
         self.max_pool = spconv.SparseMaxPool2d(2, 2)
@@ -49,18 +54,27 @@ class Net(nn.Module):
         global sparsity_relu2
         global sparsity_maxpool
 
-        # x: [N, 28, 28, 1], must be NHWC tensor
-        x_sp = spconv.SparseConvTensor.from_dense(x.reshape(-1, 28, 28, 1))
+        if dense1:
+            x = self.batchnorm(x)
+            x = self.dense_cov1(x)
+            x = F.relu(x)
+            x = spconv.SparseConvTensor.from_dense(x.reshape(-1, 32, 26, 26))
 
-        # create SparseConvTensor manually: see SparseConvTensor.from_dense
-        # x = self.net(x_sp)
+        else :
+            # x: [N, 28, 28, 1], must be NHWC tensor
+            x_sp = spconv.SparseConvTensor.from_dense(x.reshape(-1, 28, 28, 1))
 
-        x_sp.features = self.batchnorm(x_sp.features)
-        x = self.sp1(x_sp)
-        sparsity_cov1 = self.get_new_spar(x.sparity, sparsity_cov1)
+            # create SparseConvTensor manually: see SparseConvTensor.from_dense
+            # x = self.net(x_sp)
+            x_sp.features = self.batchnorm(x_sp.features)
+            x = self.sp1(x_sp)
+            sparsity_cov1 = self.get_new_spar(x.sparity, sparsity_cov1)
 
-        x.features = F.relu(x.features)
-        sparsity_relu1 = self.get_new_spar(x.sparity, sparsity_relu1)
+            x.features = F.relu(x.features)
+            sparsity_relu1 = self.get_new_spar(x.sparity, sparsity_relu1)
+
+
+
 
         x = self.sp2(x)
         sparsity_cov2 = self.get_new_spar(x.sparity, sparsity_cov2)
@@ -70,6 +84,7 @@ class Net(nn.Module):
 
         x = self.max_pool(x)
         sparsity_maxpool = self.get_new_spar(x.sparity, sparsity_maxpool)
+
 
         x = self.to_dense(x)
 
