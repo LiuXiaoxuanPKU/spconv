@@ -113,9 +113,11 @@ class SparseConvTensor(object):
 
 class ToSparse(SparseModule):
     def forward(self, x: torch.Tensor):
+        print("-------To Sparse forward")
         return SparseConvTensor.from_dense(x)
 
     def backward(self, input):
+        print("-------To Sparse backward")
         return input.dense()
 
 
