@@ -75,7 +75,7 @@ class SparseConvTensor(object):
         """create sparse tensor fron channel last dense tensor by to_sparse
         x must be NHWC tensor, channel last
         """
-        x = x.to_sparse(x.ndim - 1)
+        x = x.to_sparse(x.ndim - 1).requires_grad_(True)
         spatial_shape = x.shape[1:-1]
         batch_size = x.shape[0]
         indices_th = x.indices().permute(1, 0).contiguous().int()
@@ -110,6 +110,13 @@ class SparseConvTensor(object):
     def sparity(self):
         return self.indices.shape[0] / np.prod(
             self.spatial_shape) / self.batch_size
+
+class ToSparse(SparseModule):
+    def forward(self, x: torch.Tensor):
+        return SparseConvTensor.from_dense(x)
+
+    def backward(self, input):
+        return input.dense()
 
 
 class ToDense(SparseModule):
