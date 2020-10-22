@@ -37,6 +37,7 @@ class Net(nn.Module):
         self.sp2 = spconv.SparseConv2d(32, 64, 3, 1)
         self.max_pool = spconv.SparseMaxPool2d(2, 2)
         self.to_dense = spconv.ToDense()
+        self.to_sparse =spconv.ToSparse()
 
         self.fc1 = nn.Linear(9216, 128)
         self.fc2 = nn.Linear(128, 10)
@@ -60,7 +61,8 @@ class Net(nn.Module):
             x = self.dense_batchnorm(x)
             x = self.dense_cov1(x)
             x = F.relu(x)
-            x = spconv.SparseConvTensor.from_dense(x.reshape(-1, 26, 26, 32))
+            x = self.to_sparse(x.reshape(-1, 26, 26, 32))
+            #x = spconv.SparseConvTensor.from_dense(x.reshape(-1, 26, 26, 32))
 
         else :
             # x: [N, 28, 28, 1], must be NHWC tensor
