@@ -71,6 +71,25 @@ class SparseConvTensor(object):
         self.grid = grid
 
     @classmethod
+    def to_sparse_dim(cls, x):
+        all_sparse = x.to_sparse()
+        all_indices = all_sparse.indices()[:-1]
+        last_indice = all_sparse.indices()[-1]
+        unique_indices, labels_count = all_indices.unique(dim=all_indices.ndim - 1, return_counts=True)
+        # print(x.to_sparse())
+        # print(x.to_sparse(x.ndim-1))
+        # print(unique_indices, "*********", all_indices, "*********", labels_count, "*********")
+        tmp = []
+        for i in range(labels_count.shape[0]):
+            tmp += [i] * labels_count[i]
+        tmp = torch.LongTensor([tmp, last_indice])
+        # print(tmp)
+        # print(last_indice)
+        all_values = torch.sparse.FloatTensor(tmp, all_sparse.values(),
+                                              torch.Size([unique_indices.shape[1], x.shape[-1]])).to_dense()
+        return all_values, unique_indices
+
+    @classmethod
     def from_dense(cls, x: torch.Tensor):
         """create sparse tensor fron channel last dense tensor by to_sparse
         x must be NHWC tensor, channel last
@@ -78,19 +97,22 @@ class SparseConvTensor(object):
         spatial_shape = x.shape[1:-1]
         batch_size = x.shape[0]
 
+
+        # all_sparse = x.to_sparse()
+        # all_indices = all_sparse.indices()[:-1]
+        # value_indice = torch.FloatTensor([range(x.ndim),all_sparse.indices()[-1,:]])
+        #
+        # all_indices = all_indices.permute(1, 0).contiguous().int()
+        # all_values = torch.sparse.FloatTensor(value_indice.long(), all_sparse.values()).to_dense()
+
+        new_values, new_indices = SparseConvTensor.to_sparse_dim(x)
+
         x = x.to_sparse(x.ndim - 1)
-
-        all_sparse = x.to_sparse()
-        all_indices = all_sparse.indices()[:-1]
-        value_indice = torch.FloatTensor([range(x.ndim),all_sparse.indices()[-1,:]])
-        
-        all_indices = all_indices.permute(1, 0).contiguous().int()
-        all_values = torch.sparse.FloatTensor(value_indice.long(), all_sparse.values()).to_dense()
-
         indices_th = x.indices().permute(1, 0).contiguous().int()
-        assert(indices_th.equal(all_indices))
+        new_indices_th = indices_th.permute(1, 0).contiguous().int()
+        assert(indices_th.equal(new_indices_th))
         features_th = x.values()
-        assert (features_th.equal(all_values))
+        assert (features_th.equal(new_values))
         return cls(features_th, indices_th, spatial_shape, batch_size)
 
     @property
