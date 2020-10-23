@@ -111,14 +111,22 @@ class SparseConvTensor(object):
         return self.indices.shape[0] / np.prod(
             self.spatial_shape) / self.batch_size
 
+class ToSparseFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input):
+        print("-------To Sparse forward", type(input), input)
+        return SparseConvTensor.from_dense(input)
+
+    @staticmethod
+    def backward(ctx, output : SparseConvTensor):
+        print("-------To Sparse backward")
+        return output.dense(), None, None, None
+
+
 class ToSparse(SparseModule):
     def forward(self, x: torch.Tensor):
-        print("-------To Sparse forward")
         return SparseConvTensor.from_dense(x)
 
-    def backward(self, input):
-        print("-------To Sparse backward")
-        return input.dense()
 
 
 class ToDense(SparseModule):
