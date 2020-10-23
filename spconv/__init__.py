@@ -83,6 +83,8 @@ class SparseConvTensor(object):
         all_sparse = x.to_sparse()
         all_indices = all_sparse.indices()[:-1]
         value_indice = torch.FloatTensor([range(x.ndim),all_sparse.indices()[-1,:]])
+        
+        all_indices = all_indices.permute(1, 0).contiguous().int()
         all_values = torch.sparse.FloatTensor(value_indice.long(), all_sparse.values()).to_dense()
 
         indices_th = x.indices().permute(1, 0).contiguous().int()
