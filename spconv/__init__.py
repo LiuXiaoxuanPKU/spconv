@@ -75,11 +75,22 @@ class SparseConvTensor(object):
         """create sparse tensor fron channel last dense tensor by to_sparse
         x must be NHWC tensor, channel last
         """
-        x = x.to_sparse(x.ndim - 1).requires_grad_(True)
         spatial_shape = x.shape[1:-1]
         batch_size = x.shape[0]
+
+
+        all_sparse = x.to_sparse()
+        all_indices = all_sparse.indices()[:-1]
+        value_indice = torch.FloatTensor([range(x.ndim),all_sparse.indices()[-1,:]])
+        
+        all_indices = all_indices.permute(1, 0).contiguous().int()
+        all_values = torch.sparse.FloatTensor(value_indice.long(), all_sparse.values()).to_dense()
+
+        x = x.to_sparse(x.ndim - 1)
         indices_th = x.indices().permute(1, 0).contiguous().int()
+        assert(indices_th.equal(all_indices))
         features_th = x.values()
+        assert (features_th.equal(all_values))
         return cls(features_th, indices_th, spatial_shape, batch_size)
 
     @property
