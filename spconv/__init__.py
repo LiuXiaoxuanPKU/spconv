@@ -77,7 +77,7 @@ class SparseConvTensor(object):
         all_indices = all_sparse.indices()[:-1]
         last_indice = all_sparse.indices()[-1]
         # unique_indices, tmp = all_indices.unique(dim=all_indices.ndim - 1, return_inverse=True)
-        unique_indices, labels_count = all_indices.unique(dim=all_indices.ndim - 1, return_counts=True)
+        unique_indices, labels_count = all_indices.unique_consecutive(dim=all_indices.ndim - 1, return_counts=True)
         # print(x.to_sparse())
         # print(x.to_sparse(x.ndim-1))
         # print(unique_indices, "*********", all_indices, "*********", labels_count, "*********")
@@ -116,9 +116,9 @@ class SparseConvTensor(object):
         #    print (indices_th)
         #    print ("================")
         #    print (new_indices_th)
-        #assert(indices_th.equal(new_indices_th))
-        features_th = x.values()
-        #assert (features_th.equal(new_values))
+        # assert(indices_th.equal(new_indices_th))
+        # features_th = x.values()
+        # assert (features_th.equal(new_values))
 #        return cls(features_th, indices_th, spatial_shape, batch_size)
         return cls(new_values, new_indices_th, spatial_shape, batch_size)
 
