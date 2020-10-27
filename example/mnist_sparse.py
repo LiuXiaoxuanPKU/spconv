@@ -212,13 +212,13 @@ def main():
         test_time += test_end - test_start
         scheduler.step()
 
-    print("Sparsity cov1", sparsity_cov1)
-    print("Sparsity relu1", sparsity_relu1)
-    print("Sparsity cov2", sparsity_cov2)
-    print("Sparsity relu2", sparsity_relu2)
-    print("Sparsity max pool", sparsity_maxpool)
-    print("Train time:", train_time, " Test time:", test_time)
-    print("Forward time:", forward_time, " Backward time:", bw_time)
+        print("Sparsity cov1", sparsity_cov1)
+        print("Sparsity relu1", sparsity_relu1)
+        print("Sparsity cov2", sparsity_cov2)
+        print("Sparsity relu2", sparsity_relu2)
+        print("Sparsity max pool", sparsity_maxpool)
+        print("Train time:", train_time, " Test time:", test_time)
+        print("Forward time:", forward_time, " Backward time:", bw_time)
     if args.save_model:
         torch.save(model.state_dict(), "mnist_cnn.pt")
 
