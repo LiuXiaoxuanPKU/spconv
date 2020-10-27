@@ -23,6 +23,7 @@ sparsity_relu2 = (0, 0)
 sparsity_maxpool = (0, 0)
 
 dense1 = True
+#dense1 = False 
 
 class Net(nn.Module):
     def __init__(self):

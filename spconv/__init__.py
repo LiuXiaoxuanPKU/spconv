@@ -32,6 +32,7 @@ _LIB_FILE_NAME = "libspconv.so"
 if platform.system() == "Windows":
     _LIB_FILE_NAME = "spconv.dll"
 _LIB_PATH = str(Path(__file__).parent / _LIB_FILE_NAME)
+#_LIB_PATH = str(Path(__file__) / _LIB_FILE_NAME)
 torch.ops.load_library(_LIB_PATH)
 
 
@@ -71,6 +72,26 @@ class SparseConvTensor(object):
         self.grid = grid
 
     @classmethod
+    def to_sparse_dim(cls, x):
+        all_sparse = x.to_sparse()
+        all_indices = all_sparse.indices()[:-1]
+        last_indice = all_sparse.indices()[-1]
+        # unique_indices, tmp = all_indices.unique(dim=all_indices.ndim - 1, return_inverse=True)
+        unique_indices, labels_count = all_indices.unique(dim=all_indices.ndim - 1, return_counts=True)
+        # print(x.to_sparse())
+        # print(x.to_sparse(x.ndim-1))
+        # print(unique_indices, "*********", all_indices, "*********", labels_count, "*********")
+        tmp = []
+        for i in range(labels_count.shape[0]):
+            tmp += [i] * labels_count[i]
+        tmp = torch.LongTensor([tmp, last_indice]).cuda()
+        # print(tmp)
+        # print(last_indice)
+        all_values = torch.sparse.FloatTensor(tmp, all_sparse.values(),
+                                              torch.Size([unique_indices.shape[1], x.shape[-1]])).to_dense().cuda()
+        return all_values, unique_indices
+
+    @classmethod
     def from_dense(cls, x: torch.Tensor):
         """create sparse tensor fron channel last dense tensor by to_sparse
         x must be NHWC tensor, channel last
@@ -79,19 +100,27 @@ class SparseConvTensor(object):
         batch_size = x.shape[0]
 
 
-        all_sparse = x.to_sparse()
-        all_indices = all_sparse.indices()[:-1]
-        value_indice = torch.FloatTensor([range(x.ndim),all_sparse.indices()[-1,:]])
-        
-        all_indices = all_indices.permute(1, 0).contiguous().int()
-        all_values = torch.sparse.FloatTensor(value_indice.long(), all_sparse.values()).to_dense()
+        # all_sparse = x.to_sparse()
+        # all_indices = all_sparse.indices()[:-1]
+        # value_indice = torch.FloatTensor([range(x.ndim),all_sparse.indices()[-1,:]])
+        #
+        # all_indices = all_indices.permute(1, 0).contiguous().int()
+        # all_values = torch.sparse.FloatTensor(value_indice.long(), all_sparse.values()).to_dense()
+
+        new_values, new_indices = SparseConvTensor.to_sparse_dim(x)
 
         x = x.to_sparse(x.ndim - 1)
-        indices_th = x.indices().permute(1, 0).contiguous().int()
-        assert(indices_th.equal(all_indices))
+        # indices_th = x.indices().permute(1, 0).contiguous().int()
+        new_indices_th = new_indices.permute(1, 0).contiguous().int()
+        #if (not indices_th.equal(new_indices_th)):
+        #    print (indices_th)
+        #    print ("================")
+        #    print (new_indices_th)
+        #assert(indices_th.equal(new_indices_th))
         features_th = x.values()
-        assert (features_th.equal(all_values))
-        return cls(features_th, indices_th, spatial_shape, batch_size)
+        #assert (features_th.equal(new_values))
+#        return cls(features_th, indices_th, spatial_shape, batch_size)
+        return cls(new_values, new_indices_th, spatial_shape, batch_size)
 
     @property
     def spatial_size(self):
