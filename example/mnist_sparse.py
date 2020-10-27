@@ -126,6 +126,13 @@ def train(args, model, device, train_loader, optimizer, epoch):
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.item()))
+            print('forward time', forward_time, ' backward time', bw_time)
+            print("Sparsity cov1", sparsity_cov1)
+            print("Sparsity relu1", sparsity_relu1)
+            print("Sparsity cov2", sparsity_cov2)
+            print("Sparsity relu2", sparsity_relu2)
+            print("Sparsity max pool", sparsity_maxpool)
+
 
 
 def test(model, device, test_loader):
