@@ -72,42 +72,15 @@ class SparseConvTensor(object):
         self.grid = grid
 
     @classmethod
-    def to_sparse_dim_self(cls, x):
-        all_sparse = x.to_sparse()
-        all_indices = all_sparse.indices()[:-1]
-        last_indice = all_sparse.indices()[-1]
-        t = all_indices.t()
-        cur = None
-        cnt = -1
-        i = []
-        idx = []
-        for r in t:
-            if cur != None and r.equal(cur):
-                i.append(cnt)
-            else:
-                idx.append(r)
-                cnt += 1
-                i.append(cnt)
-                cur = r
-        unique_indices =  torch.stack(idx)
-        tmp = torch.LongTensor([i, last_indice])
-        all_values = torch.sparse.FloatTensor(tmp, all_sparse.values(),
-                                              torch.Size([unique_indices.shape[1], x.shape[-1]])).to_dense()
-        return all_values, unique_indices
-
-    @classmethod
     def to_sparse_dim(cls, x):
         all_sparse = x.to_sparse()
         all_indices = all_sparse.indices()[:-1]
         last_indice = all_sparse.indices()[-1]
-        # unique_indices, tmp = all_indices.unique(dim=all_indices.ndim - 1, return_inverse=True)
-        unique_indices, labels_count = all_indices.unique_consecutive(dim=all_indices.ndim - 1, return_counts=True)
-        tmp = []
-        for i in range(labels_count.shape[0]):
-            tmp += [i] * labels_count[i]
-        tmp = torch.LongTensor([tmp, last_indice]).cuda()
-        # print(tmp)
-        # print(last_indice)
+
+        unique_indices, tmp = np.unique(all_indices, axis=all_indices.ndim - 1, return_inverse=True)
+        unique_indices = torch.from_numpy(unique_indices)
+        tmp = torch.LongTensor([tmp, last_indice])
+
         all_values = torch.sparse.FloatTensor(tmp, all_sparse.values(),
                                               torch.Size([unique_indices.shape[1], x.shape[-1]])).to_dense().cuda()
         return all_values, unique_indices
@@ -137,7 +110,7 @@ class SparseConvTensor(object):
         # all_indices = all_indices.permute(1, 0).contiguous().int()
         # all_values = torch.sparse.FloatTensor(value_indice.long(), all_sparse.values()).to_dense()
 
-        new_values, new_indices = SparseConvTensor.to_sparse_dim_self(x)
+        new_values, new_indices = SparseConvTensor.to_sparse_dim(x)
         new_indices_th = new_indices.permute(1, 0).contiguous().int()
         #if (not indices_th.equal(new_indices_th)):
         #    print (indices_th)
