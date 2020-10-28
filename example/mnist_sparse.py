@@ -58,6 +58,8 @@ class Net(nn.Module):
         self.dropout1 = nn.Dropout2d(0.25)
         self.dropout2 = nn.Dropout2d(0.5)
 
+        self.dropout = nn.Dropout2d(0.8)
+
     def get_new_spar(self, news, old_spar_cnt):
         (olds, oldcnt) = old_spar_cnt
         cnt = oldcnt + 1
@@ -151,18 +153,23 @@ class Net(nn.Module):
             # create SparseConvTensor manually: see SparseConvTensor.from_dense
             # x = self.net(x_sp)
             x_sp.features = self.batchnorm(x_sp.features)
+            x = self.dropout(x)
             x = self.sp1(x_sp)
             sparsity_cov1 = self.get_new_spar(x.sparity, sparsity_cov1)
 
+            x = self.dropout(x)
             x.features = F.relu(x.features)
             sparsity_relu1 = self.get_new_spar(x.sparity, sparsity_relu1)
 
+            x = self.dropout(x)
             x = self.sp2(x)
             sparsity_cov2 = self.get_new_spar(x.sparity, sparsity_cov2)
 
+            x = self.dropout(x)
             x.features = F.relu(x.features)
             sparsity_relu2 = self.get_new_spar(x.sparity, sparsity_relu2)
 
+            x = self.dropout(x)
             x = self.max_pool(x)
             sparsity_maxpool = self.get_new_spar(x.sparity, sparsity_maxpool)
 
