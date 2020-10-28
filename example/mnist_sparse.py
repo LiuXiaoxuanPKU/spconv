@@ -22,8 +22,14 @@ sparsity_relu1 = (0, 0)
 sparsity_relu2 = (0, 0)
 sparsity_maxpool = (0, 0)
 
-#dense1 = True
-dense1 = False 
+# dense1 = True
+# dense1 = False
+
+sparse_cov1 = True
+sparse_relu1 = True
+sparse_cov2 = True
+sparse_relu2 = True
+sparse_maxpool = True
 
 class Net(nn.Module):
     def __init__(self):
@@ -37,6 +43,7 @@ class Net(nn.Module):
         self.sp1 = spconv.SparseConv2d(1, 32, 3, 1)
         self.sp2 = spconv.SparseConv2d(32, 64, 3, 1)
         self.max_pool = spconv.SparseMaxPool2d(2, 2)
+        self.dense_max_pool = nn.MaxPool2d((2,2))
         self.to_dense = spconv.ToDense()
         self.to_sparse =spconv.ToSparse()
 
@@ -65,7 +72,65 @@ class Net(nn.Module):
             x = self.to_sparse(x.reshape(-1, 26, 26, 32))
             #x = spconv.SparseConvTensor.from_dense(x.reshape(-1, 26, 26, 32))
 
-        else :
+            x = self.sp2(x)
+
+            sparsity_cov2 = self.get_new_spar(x.sparity, sparsity_cov2)
+
+            x.features = F.relu(x.features)
+            sparsity_relu2 = self.get_new_spar(x.sparity, sparsity_relu2)
+
+            x = self.max_pool(x)
+            sparsity_maxpool = self.get_new_spar(x.sparity, sparsity_maxpool)
+
+            x = self.to_dense(x)
+
+        elif sparse_cov1:
+            x_sp = spconv.SparseConvTensor.from_dense(x.reshape(-1, 28, 28, 1))
+            x_sp.features = self.batchnorm(x_sp.features)
+            x = self.sp1(x_sp)
+            sparsity_cov1 = self.get_new_spar(x.sparity, sparsity_cov1)
+            x = self.to_dense(x)
+            x = F.relu(x)
+            x = self.dense_cov2(x)
+            x = F.relu(x)
+            x = self.dense_max_pool(x)
+
+        elif sparse_relu1:
+            x_sp = spconv.SparseConvTensor.from_dense(x.reshape(-1, 28, 28, 1))
+            x_sp.features = self.batchnorm(x_sp.features)
+            x = self.sp1(x_sp)
+            sparsity_cov1 = self.get_new_spar(x.sparity, sparsity_cov1)
+            x.features = F.relu(x.features)
+            x = self.to_dense(x)
+            x = self.dense_cov2(x)
+            x = F.relu(x)
+            x = self.dense_max_pool(x)
+
+        elif sparse_cov2:
+            x_sp = spconv.SparseConvTensor.from_dense(x.reshape(-1, 28, 28, 1))
+            x_sp.features = self.batchnorm(x_sp.features)
+            x = self.sp1(x_sp)
+            sparsity_cov1 = self.get_new_spar(x.sparity, sparsity_cov1)
+            x.features = F.relu(x.features)
+            x = self.sp2(x)
+            sparsity_cov2 = self.get_new_spar(x.sparity, sparsity_cov1)
+            x = self.to_dense(x)
+            x = F.relu(x)
+            x = self.dense_max_pool(x)
+
+        elif sparse_relu2:
+            x_sp = spconv.SparseConvTensor.from_dense(x.reshape(-1, 28, 28, 1))
+            x_sp.features = self.batchnorm(x_sp.features)
+            x = self.sp1(x_sp)
+            sparsity_cov1 = self.get_new_spar(x.sparity, sparsity_cov1)
+            x.features = F.relu(x.features)
+            x = self.sp2(x)
+            sparsity_cov2 = self.get_new_spar(x.sparity, sparsity_cov1)
+            x.features = F.relu(x.features)
+            x = self.to_dense(x)
+            x = self.dense_max_pool(x)
+
+        elif sparse_maxpool:
             # x: [N, 28, 28, 1], must be NHWC tensor
             x_sp = spconv.SparseConvTensor.from_dense(x.reshape(-1, 28, 28, 1))
 
@@ -78,20 +143,16 @@ class Net(nn.Module):
             x.features = F.relu(x.features)
             sparsity_relu1 = self.get_new_spar(x.sparity, sparsity_relu1)
 
+            x = self.sp2(x)
+            sparsity_cov2 = self.get_new_spar(x.sparity, sparsity_cov2)
 
+            x.features = F.relu(x.features)
+            sparsity_relu2 = self.get_new_spar(x.sparity, sparsity_relu2)
 
+            x = self.max_pool(x)
+            sparsity_maxpool = self.get_new_spar(x.sparity, sparsity_maxpool)
 
-        x = self.sp2(x)
-        sparsity_cov2 = self.get_new_spar(x.sparity, sparsity_cov2)
-
-        x.features = F.relu(x.features)
-        sparsity_relu2 = self.get_new_spar(x.sparity, sparsity_relu2)
-
-        x = self.max_pool(x)
-        sparsity_maxpool = self.get_new_spar(x.sparity, sparsity_maxpool)
-
-
-        x = self.to_dense(x)
+            x = self.to_dense(x)
 
         x = torch.flatten(x, 1)
         x = self.dropout1(x)
