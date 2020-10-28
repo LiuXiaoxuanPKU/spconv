@@ -25,6 +25,7 @@ sparsity_maxpool = (0, 0)
 # dense1 = True
 # dense1 = False
 
+all_dense = True
 sparse_cov1 = True
 sparse_relu1 = True
 sparse_cov2 = True
@@ -83,6 +84,14 @@ class Net(nn.Module):
             sparsity_maxpool = self.get_new_spar(x.sparity, sparsity_maxpool)
 
             x = self.to_dense(x)
+
+        elif all_dense:
+            x = self.dense_batchnorm(x)
+            x = self.dense_cov1(x)
+            x = F.relu(x)
+            x = self.dense_cov2(x)
+            x = F.relu(x)
+            x = self.dense_max_pool(x)
 
         elif sparse_cov1:
             x_sp = spconv.SparseConvTensor.from_dense(x.reshape(-1, 28, 28, 1))
