@@ -23,14 +23,19 @@ sparsity_relu2 = (0, 0)
 sparsity_maxpool = (0, 0)
 
 # dense1 = True
-# dense1 = False
+dense1 = False
 
 all_dense = True
-sparse_cov1 = True
-sparse_relu1 = True
-sparse_cov2 = True
-sparse_relu2 = True
-sparse_maxpool = True
+#sparse_cov1 = True
+sparse_cov1 = False
+#sparse_relu1 = True
+sparse_relu1 = False
+#sparse_cov2 = True
+sparse_cov2 = False
+#sparse_relu2 = True
+sparse_relu2 = False
+#sparse_maxpool = True
+sparse_maxpool = False
 
 class Net(nn.Module):
     def __init__(self):
